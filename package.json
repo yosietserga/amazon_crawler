@@ -16,10 +16,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon index.js",
-    "start": "node index.js",
-    "build": ""
+    "start": "docker run -it -p 8080:3000 amazon_crawler"
   },
   "author": "",
   "license": "ISC",
