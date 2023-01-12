@@ -17,7 +17,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "docker run -it -p 8080:3000 amazon_crawler",
+    "start": "node index.js",
     "build": "echo building..."
   },
   "author": "",
