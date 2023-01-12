@@ -4,6 +4,9 @@ nixPkgs = ["nodejs"]
 [phases.install]
 cmds = ["npm install", "echo installing!"]
 
+[phases.build]
+cmds = ["echo building!!!"]
+
 [variables]
 NODE_ENV = "production"
 
