@@ -534,5 +534,5 @@ app.get("/products/:asin", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Amazon crawler as API is online!`);
+  console.log(`Amazon crawler as API is online on port ${PORT}!`);
 });
