@@ -3,7 +3,7 @@ const express = require("express");
 const { log } = require("./utils/helpers");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 80;
 const base_url = "https://www.amazon.es";
 
 const singleton = {}; 
@@ -533,6 +533,6 @@ app.get("/products/:asin", async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
+app.listen(80, () => {
   console.log(`Amazon crawler as API is online!`);
 });
