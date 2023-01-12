@@ -507,6 +507,7 @@ const nightmare = Nightmare({
 app.use(express.json());
 
 app.get("/", (req, res) => {
+  console.log("logging at home...");
   res.send("Welcome to Amazon Scraper API");
 }); 
 
