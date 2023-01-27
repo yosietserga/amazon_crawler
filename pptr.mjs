@@ -43,7 +43,7 @@ const getMeTheAmazonProductData = async (
       let selectors = {};
 
       //define selectors
-      selectors.variationsContainersNoJS = "[id^=twister] select";
+      selectors.variationsContainersNoJS = "[id=twister] > div";
       selectors.variationsContainers = "[id^=inline-twister-expander-content] ul";
       selectors.variationsContainer = "[id^=inline-twister-expander-content] li";
       selectors.mainVariations = "dimension-value-list-item-square-image";
@@ -390,77 +390,88 @@ const getMeTheAmazonProductData = async (
         if (!!singleton.with_all_variations && hasVariations >= 2) {
           try {
             console.log("Get all combinations of variations");
-            await walkThroughVariations(
-              selectors.mainVariations,
-              async (o) => {
-                hasBeenClicked = false;
-
-                title = o.querySelector(".swatch-title-text-display")
-                  ? o
-                      .querySelector(".swatch-title-text-display")
-                      .innerText.trim() + " "
-                  : "";
-                console.log("getting combinations for variation " + title);
-                return await walkThroughVariations(
-                  selectors.secondaryVariations,
-                  async (opt) => {
-                    if (!hasBeenClicked) {
-                      hasBeenClicked = true;
-                      opt.click();
-                      await sleep(2);
+            
+            const lis = findAll("[id^=twister] ul li");
+            for (let j in lis) {
+              if (isNaN(j)) continue;
+              let li = lis[j];
+        
+                li.click();
+                await sleep(2);
+                
+                    //make sure has loaded
+                    if (!!lastAsin || lastAsin !== find("#ASIN").value) {
+                      lastAsin = find("#ASIN").value;
+                      await sleep();
                     }
+
+              let opts = findAll("[id^=twister] select option");
+
+              for (let i in opts) {
+                if (isNaN(i) || i == 0) continue;
+                let opt = opts[i];
+
+                if (
+                  Array.from(opt.classList)
+                    .join(" ")
+                    .toLowerCase()
+                    .indexOf("unavailable") !== -1
+                ) {
+                  continue;
+                }
+
+                if (!hasBeenClicked) {
+                  hasBeenClicked = true;
+                  let select_ = find("[id^=twister] select");
+                  select_.click();
+                  opt.selected = "selected";
+                  select_.value = opt.value;
+                  evUI(select_, "change");
+                  await sleep(3);
+                }
 
                     //make sure has loaded
                     if (!!lastAsin || lastAsin !== find("#ASIN").value) {
                       lastAsin = find("#ASIN").value;
                       await sleep();
                     }
-                    console.log(lastAsin, find("#ASIN").value);
 
-                    //get variation
-                    const variation = {
-                      asin: find("#ASIN").value,
-                      title:
-                        title +
-                        opt
-                          .querySelector(".swatch-title-text-display")
-                          .innerText.trim(),
-                    };
+                let title = unescape(find("#productTitle")?.innerText?.trim())
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "");
 
-                    if (opt.querySelector(".twister_swatch_price")) {
-                      let priceText = opt.querySelector(
-                        ".twister_swatch_price"
-                      ).innerText;
-                      if (priceText.indexOf("a partir")) {
-                        variation.price = priceText
-                          .substr(priceText.indexOf("a partir"))
-                          .replace(/[^0-9\.,]/gi, "");
-                      } else {
-                        variation.price = priceText.replace(/[^0-9\.,]/gi, "");
-                      }
-                    }
-                    console.log(
-                      lastAsin,
-                      find("#ASIN").value,
-                      __getPrice(),
-                      variation
-                    );
+                const variation = {
+                  asin: find("#ASIN").value,
+                  title: title + " " + opt.innerText.trim(),
+                };
 
-                    //get all needed data and dispatch done
-                    if (!variation.price) variation.price = __getPrice();
-                    const data = getProductData();
-                    if (!!variation.price)
-                      singleton.data[variation.asin] = {
-                        ...data,
-                        ...variation,
-                      };
-                    console.log(singleton.data[variation.asin], singleton.data);
-                  },
-                  true
-                );
-              },
-              true
-            );
+                if (opt.querySelector(".twister_swatch_price")) {
+                  let priceText = opt.querySelector(
+                    ".twister_swatch_price"
+                  )?.innerText;
+
+                  if (priceText.indexOf("a partir")) {
+                    variation.price = priceText
+                      .substr(priceText.indexOf("a partir"))
+                      .replace(/[^0-9\.,]/gi, "");
+                  } else {
+                    variation.price = priceText.replace(/[^0-9\.,]/gi, "");
+                  }
+                }
+
+                //get all needed data and dispatch done
+                if (!variation.price) variation.price = __getPrice();
+
+                const data = getProductData();
+
+                if (!!variation.price)
+                  singleton.data[variation.asin] = { ...data, ...variation };
+
+                console.log(singleton.data[variation.asin], singleton.data);
+
+                hasBeenClicked = false;
+              }
+            }
           } catch (err) {
             console.log(err);
           }
@@ -544,7 +555,7 @@ const getMeTheAmazonProductData = async (
     }, singleton);
 
     console.log(resp);
-    //await browser.close();
+    await browser.close();
     return resp;
   } catch (err) {
     log(err);
