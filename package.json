@@ -1,10 +1,8 @@
 {
   "dependencies": {
     "cli-color": "^2.0.3",
-    "electron": "^21.2.3",
     "express": "^4.18.2",
-    "nightmare": "^3.0.2",
-    "puppeteer": "^19.2.2"
+    "puppeteer": "^19.6.1"
   },
   "devDependencies": {
     "@types/node": "^15.6.1",
@@ -14,10 +12,10 @@
   },
   "name": "amazon_crawler",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "pptr.mjs",
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js -p $PORT PORT=$PORT",
+    "dev": "DEBUG=\"puppeteer:*\" nodemon pptr.mjs -p $PORT PORT=$PORT",
+    "start": "nodemon pptr.mjs -p $PORT PORT=$PORT",
     "build": "echo building..."
   },
   "author": "",

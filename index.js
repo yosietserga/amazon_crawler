@@ -1,12 +1,68 @@
 const Nightmare = require("nightmare");
+const Xvfb = require("xvfb");
 const express = require("express");
 const { log } = require("./utils/helpers");
 
+main().catch(console.error);
+
+// main function
+async function main() {
+  const close = await xvfb()
+  const nightmare = Nightmare()
+
+  const [err, title] = await poss(run(nightmare))
+  if (err) {
+    // cleanup properly
+    await nightmare.end()
+    await close()
+    throw err
+  }
+
+  console.log(title)
+
+  // shut'er down
+  await nightmare.end()
+  await close()
+}
+
+// run nightmare
+//
+// put all your nightmare commands in here
+async function run(nightmare) {
+  await nightmare.goto('https://google.com')
+  const title = await nightmare.title()
+  return title
+}
+
+// xvfb wrapper
+function xvfb(options) {
+  var xvfb = new Xvfb(options)
+
+  function close() {
+    return new Promise((resolve, reject) => {
+      xvfb.stop(err => (err ? reject(err) : resolve()))
+    })
+  }
+
+  return new Promise((resolve, reject) => {
+    xvfb.start(err => (err ? reject(err) : resolve(close)))
+  })
+}
+
+// try/catch helper
+async function poss(promise) {
+  try {
+    const result = await promise
+    return [null, result]
+  } catch (err) {
+    return [err, null]
+  }
+}
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT ?? 3000;
 const base_url = "https://www.amazon.es";
 
-const singleton = {}; 
+const singleton = {};
 singleton.data = {};
 
 const getMeTheAmazonProductData = async (
@@ -15,80 +71,28 @@ const getMeTheAmazonProductData = async (
   with_all_variations
 ) => {
   try {
-    
-const nightmare = Nightmare({
-  /*
-  openDevTools: {
-    mode: "atach",
-  },
-  show: true,
-  */
-  executionTimeout: 1000 * 60 * 20, // in ms
-});
+    const log = console.log;
+
+    const nightmare = Nightmare({
+      /*
+      openDevTools: {
+        mode: "atach",
+      },
+      show: true,
+      */
+      executionTimeout: 1000 * 60 * 20, // in ms
+    });
+
+    log("Starting ", nightmare);
+
     singleton.with_variations = with_variations;
     singleton.with_all_variations = with_all_variations;
-    return await nightmare
+
+    nightmare
       .goto(`${base_url}/gp/product/${asin}`)
-      /*
-  .evaluate(() => {
-      //solve captcha if appears
-      const catpchaSolver = (urlImage) => {
-        var myHeaders = new Headers();
-        myHeaders.append("apikey", "pkNZ6YtTC23MMR9Uocq9gf6C7somGiMk");
-
-        var requestOptions = {
-          method: "GET",
-          redirect: "follow",
-          headers: myHeaders,
-        };
-
-        fetch(
-          "https://api.apilayer.com/image_to_text/url?url=" +
-            encodeURIComponent(urlImage),
-          requestOptions
-        )
-          .then((response) => response.json())
-          .then((result) => {
-            document.querySelector(
-              'form[action="/errors/validateCaptcha"] input[name=field-keywords]'
-            ).value = result.all_text;
-            document.querySelector('form[action="/errors/validateCaptcha"]').submit();
-          })
-          .catch((error) => log(error, "error"));
-      };
-
-      let captcha = document.querySelector(
-        'form[action="/errors/validateCaptcha"] img'
-      )?.src;
-
-      if (captcha) {
-        catpchaSolver(captcha);
-      }
-      return captcha;
-  })
-  */
-      //.wait(1600)
-      //.select("#native_dropdown_selected_size_name", "0,B09RBVJGPH")
       .evaluate(async (singleton, done) => {
         "use strict";
         /** helpers.j **/
-        const log = console.log;
-        function ValidURL(str) {
-          var pattern = new RegExp(
-            "^(https?:\\/\\/)?" + // protocol
-              "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" + // domain name
-              "((\\d{1,3}\\.){3}\\d{1,3}))" + // OR ip (v4) address
-              "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*" + // port and path
-              "(\\?[;&a-z\\d%_.~+=-]*)?" + // query string
-              "(\\#[-a-z\\d_]*)?$",
-            "i"
-          ); // fragment locator
-          return !!pattern.test(str);
-        }
-
-        function isImageURL(url) {
-          return url.match(/\.(jpeg|jpg|gif|png)$/) != null;
-        }
 
         /*#####################################################################*/
         /*#####################################################################*/
@@ -203,8 +207,8 @@ const nightmare = Nightmare({
 
             try {
               if (find("#outOfStock")) {
-                stock = "AGOTADO"
-              };
+                stock = "AGOTADO";
+              }
             } catch (err) {
               console.log(err);
             }
@@ -213,28 +217,6 @@ const nightmare = Nightmare({
 
             //images preload
             const images = [];
-            /*
-      const __images = findAll("#altImages img").map((item) => {
-        let uri = item.src.substr(item.src.lastIndexOf("/") + 1);
-        return uri.substr(0, uri.indexOf("."));
-      });
-
-      const images = find("body").innerHTML.match(/(?<="hiRes":")([^"]+)(?=")/gi)
-        .map((v) => {
-          return decodeURIComponent(v);
-        })
-        .filter((v, i, s) => {
-          return s.indexOf(v) === i;
-        })
-        .filter((v, i, s) => {
-          return ValidURL(v) && isImageURL(v);
-        })
-        .filter((v, i, s) => {
-          let uri = v.substr(v.lastIndexOf("/") + 1);
-          let uni = uri.substr(0, uri.indexOf("."));
-          return __images.includes(uni);
-        });
-        */
             const image = find(".imgTagWrapper img").src;
 
             return {
@@ -311,33 +293,36 @@ const nightmare = Nightmare({
         const hasVariations = document.querySelectorAll(
           selectors.variationsContainers
         ).length;
-            
-        console.log("singleton.with_all_variations", singleton.with_all_variations);
+
+        console.log(
+          "singleton.with_all_variations",
+          singleton.with_all_variations
+        );
         console.log("hasVariations", hasVariations);
 
         if (!!singleton.with_all_variations && hasVariations >= 2) {
           try {
-            console.log("Get all combinations of variations")
+            console.log("Get all combinations of variations");
             await walkThroughVariations(
               selectors.mainVariations,
               async (o) => {
                 hasBeenClicked = false;
 
                 title = o.querySelector(".swatch-title-text-display")
-                  ? o.querySelector(".swatch-title-text-display")
-                      .innerText.trim()+ " "
+                  ? o
+                      .querySelector(".swatch-title-text-display")
+                      .innerText.trim() + " "
                   : "";
-                console.log("getting combinations for variation "+ title)
+                console.log("getting combinations for variation " + title);
                 return await walkThroughVariations(
                   selectors.secondaryVariations,
                   async (opt) => {
-                    
                     if (!hasBeenClicked) {
                       hasBeenClicked = true;
                       opt.click();
                       await sleep(2);
                     }
-                    
+
                     //make sure has loaded
                     if (!!lastAsin || lastAsin !== find("#ASIN").value) {
                       lastAsin = find("#ASIN").value;
@@ -438,14 +423,13 @@ const nightmare = Nightmare({
           }
         } else if (!!singleton.with_variations) {
           try {
-            const variations = Array.from(document.querySelectorAll(
-              selectors.variationsContainers
-            ));
+            const variations = Array.from(
+              document.querySelectorAll(selectors.variationsContainers)
+            );
             variations.shift();
             console.log(variations);
 
             for (let i in variations[0].children) {
-
               if (isNaN(i)) continue;
 
               const opt = variations[0].children[i].querySelector(
@@ -461,9 +445,12 @@ const nightmare = Nightmare({
 
               const variation = {
                 asin: find("#ASIN").value,
-                title: title +" "+ opt
-                  .querySelector(".swatch-title-text-display")
-                  .innerText.trim(),
+                title:
+                  title +
+                  " " +
+                  opt
+                    .querySelector(".swatch-title-text-display")
+                    .innerText.trim(),
               };
 
               if (opt.querySelector(".twister_swatch_price")) {
@@ -498,7 +485,17 @@ const nightmare = Nightmare({
         return singleton;
       }, singleton)
       //.end()
+      .then((resp) => {
+        log({ resp });
+        return resp;
+      })
       .catch(console.log);
+
+    let tm = 1;
+    setInterval(() => {
+      log(`Has passed ${tm} seconds`);
+      tm++;
+    }, 1000);
   } catch (err) {
     log(err);
   }
@@ -509,7 +506,7 @@ app.use(express.json());
 app.get("/", (req, res) => {
   console.log("logging at home...");
   res.send("Welcome to Amazon Scraper API");
-}); 
+});
 
 //GET product details
 app.get("/products/:asin", async (req, res) => {
