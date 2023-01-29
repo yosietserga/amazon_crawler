@@ -46,7 +46,7 @@ const getMeTheAmazonProductData = async (
       selectors.variationsContainersNoJS = "[id=twister] > div";
       selectors.variationsContainers = "[id^=inline-twister-expander-content] ul";
       selectors.variationsContainer = "[id^=inline-twister-expander-content] li";
-      selectors.mainVariations = "dimension-value-list-item-square-image";
+      selectors.mainVariations = "dimension-value-list-item-square-image"; 
       selectors.secondaryVariations = "swatch-list-item-text";
       selectors.variationClickable = "span[id]";
       selectors.price = ".priceToPay .a-offscreen";
