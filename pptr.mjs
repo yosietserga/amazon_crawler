@@ -20,15 +20,13 @@ const getMeTheAmazonProductData = async (
     singleton.with_all_variations = with_all_variations;
 
     const browser = await puppeteer.launch({
-      headless: false,
-      /*
+      headless: true,
       args: [
         "--disable-gpu",
         "--disable-dev-shm-usage",
         "--disable-setuid-sandbox",
         "--no-sandbox",
       ],
-      */
     });
     
     const page = await browser.newPage();
